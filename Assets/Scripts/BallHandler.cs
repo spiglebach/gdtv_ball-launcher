@@ -1,5 +1,6 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 public class BallHandler : MonoBehaviour {
     [SerializeField] private GameObject ballPrefab;
@@ -16,18 +17,22 @@ public class BallHandler : MonoBehaviour {
         mainCamera = Camera.main;
     }
 
+    private void OnEnable() {
+        EnhancedTouchSupport.Enable();
+    }
+
+    private void OnDisable() {
+        EnhancedTouchSupport.Disable();
+    }
+
     private void Start() {
         SpawnNewBall();
     }
 
     void Update() {
         if (!currentBallRigidbody) return;
-        var current = Touchscreen.current;
-        if (current == null) {
-            return;
-        }
-        var primaryTouch = current.primaryTouch;
-        if (!primaryTouch.isInProgress) {
+        var activeTouches = Touch.activeTouches;
+        if (activeTouches.Count <= 0) {
             if (isDragging) {
                 LaunchBall();
             }
@@ -36,8 +41,12 @@ public class BallHandler : MonoBehaviour {
         }
 
         isDragging = true;
-        
-        var touchPosition = primaryTouch.position.ReadValue();
+
+        var touchPosition = new Vector2();
+        foreach (var touch in activeTouches) {
+            touchPosition += touch.screenPosition;
+        }
+        touchPosition /= activeTouches.Count;
         var worldPosition = mainCamera.ScreenToWorldPoint(touchPosition);
 
         currentBallRigidbody.position = worldPosition;
